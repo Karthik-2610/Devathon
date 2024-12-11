@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combined Exam App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            display: none;
+        }
+        .container.active {
+            display: block;
+        }
+        h2 {
+            text-align: center;
+        }
+        input, button, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 10px solid #4CAF50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px auto;
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .thank-you {
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+            margin-top: 10px;
+        }
+        #timer {
+            text-align: center;
+            color: #333;
+            font-size: 16px;
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+        }
+        .score-summary {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .score-summary p {
+            margin: 5px 0;
+        }
+        textarea {
+            height: 150px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Container -->
+    <div id="loginContainer" class="container active">
+        <h2>Login to Exam</h2>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <div id="loginMessage" style="text-align: center; color: red;"></div>
+    </div>
+
+    <!-- Exam Selection Container -->
+    <div id="examSelectionContainer" class="container">
+        <h2>Select Exam Section</h2>
+        <button onclick="startExam('aptitude')">Aptitude</button>
+        <button onclick="startExam('coding')">Coding</button>
+    </div>
+
+    <!-- Instruction Page -->
+    <div id="instructionContainer" class="container">
+        <h2>Exam Instructions</h2>
+        <ul>
+            <li>Read all the questions carefully.</li>
+            <li>Each question has a specific time limit.</li>
+            <li>Click "Save" to save your answer.</li>
+            <li>Once you finish, click "Submit" to see your score.</li>
+            <li>You have 60 minutes to complete the exam.</li>
+        </ul>
+        <button onclick="startExamTimer()">Start Exam</button>
+    </div>
+
+    <!-- Exam Questions Container -->
+    <div id="examContainer" class="container">
+        <h2 id="examTitle"></h2>
+        <div id="questionContainer"></div>
+        <div id="timer"></div>
+        <div class="nav-buttons">
+            <button id="prevBtn" onclick="prevQuestion()" disabled>Previous</button>
+            <button id="saveBtn" onclick="saveAnswer()">Save</button>
+            <button id="nextBtn" onclick="nextQuestion()">Next</button>
+        </div>
+    </div>
+
+    <!-- Score Page Container -->
+    <div id="scoreContainer" class="container">
+        <h2>Your Score</h2>
+        <div class="circle" id="circleScore"></div>
+        <div class="score-summary">
+            <p><strong>Aptitude Score:</strong> <span id="aptitudeScore">0%</span></p>
+            <p><strong>Coding Score:</strong> <span id="codingScore">0%</span></p>
+            <p><strong>Total Score:</strong> <span id="totalScore">0%</span></p>
+        </div>
+        <p class="thank-you">Thank you for taking the exam!</p>
+        <button onclick="goBackToSelection()">Back to Exam Selection</button>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <script>
+        const correctUsername = "student";
+        const correctPassword = "exam123";
+
+        const aptitudeQuestions = [
+            { 
+                question: "1. What is 10 + 5?", 
+                id: "apt1", 
+                type: "mcq", 
+                options: ["15","10","20","4"] ,
+                correctAnswer: "15"
+            },
+            { 
+                question: "2. What is the square root of 16?", 
+                id: "apt2", 
+                type: "mcq", 
+                options: ["15","10","20","4"] ,
+                correctAnswer: "4"
+            },
+            { 
+                question: "3. What is 12 * 3?", 
+                id: "apt3", 
+                type: "mcq", 
+                options: ["16","10","26","36"] ,
+                correctAnswer: "36"
+            },
+            {
+                question: "4. What is the capital of France?",
+                id: "apt4",
+                type: "mcq",
+                options: ["Berlin", "Madrid", "Paris", "Rome"],
+                correctAnswer: "Paris"
+            },
+            {
+                question: "5. What is the chemical symbol for water?",
+                id: "apt5",
+                type: "mcq",
+                options: ["H2O", "CO2", "O2", "N2"],
+                correctAnswer: "H2O"
+            }
+        ];
+
+        const codingQuestions = [
+            { 
+                question: "1. What is the output of 2 + '2' in JavaScript?", 
+                id: "code1", 
+                type: "mcq", 
+                options: ["22", "4", "NaN", "undefined"], 
+                correctAnswer: "22" 
+            },
+            { 
+                question: "2. Write a function to reverse a string in JavaScript.", 
+                id: "code2", 
+                type: "coding", 
+                options: [] 
+            }
+        ];
+
+        const correctAnswers = {
+            apt1: "15",
+            apt2: "4",
+            apt3: "36",
+            apt4: "Paris",
+            apt5: "H2O",
+            code1: "22",
+            code2: "function reverseString(str) { return str.split('').reverse().join(''); }"
+        };
+
+        let currentQuestions = [];
+        let answers = {};
+        let currentQuestionIndex = 0;
+        let startTime;
+        let timerInterval;
+
+        let scores = {
+            aptitude: 0,
+            coding: 0,
+        };
+
+        // Login validation
+        document.getElementById('loginForm').onsubmit = function (e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('loginMessage');
+
+            if (username === correctUsername && password === correctPassword) {
+                messageDiv.style.color = 'green';
+                messageDiv.textContent = "Login successful! Redirecting...";
+                setTimeout(() => {
+                    showContainer('examSelectionContainer');
+                }, 2000);
+            } else {
+                messageDiv.textContent = "Invalid username or password!";
+            }
+        };
+
+        // Start the exam and show the instructions
+        function startExam(section) {
+            if (section === 'aptitude') {
+                currentQuestions = aptitudeQuestions;
+                document.getElementById('examTitle').textContent = "Aptitude Questions";
+            } else {
+                currentQuestions = codingQuestions;
+                document.getElementById('examTitle').textContent = "Coding Questions";
+            }
+            currentQuestionIndex = 0;
+            answers = {};
+            showContainer('instructionContainer');
+        }
+
+        // Start the timer after clicking "Start Exam"
+        function startExamTimer() {
+            showContainer('examContainer');
+            startTime = new Date();
+            displayQuestion();
+            startTimer();
+        }
+
+        // Timer function (set to 60 minutes)
+        function startTimer() {
+            const timerElement = document.getElementById('timer');
+            let timeRemaining = 3600;  // 60 minutes in seconds
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+                timerElement.textContent = `Time Left: ${minutes}m ${seconds}s`;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    calculateScore();
+                }
+            }, 1000);
+        }
+
+        // Display the current question
+        function displayQuestion() {
+            const questionContainer = document.getElementById('questionContainer');
+            const question = currentQuestions[currentQuestionIndex];
+
+            if (question.type === "text") {
+                questionContainer.innerHTML = `
+                    <p>${question.question}</p>
+                    <input type="text" id="${question.id}" value="${answers[question.id] || ''}">
+                `;
+            } else if (question.type === "mcq") {
+                let optionsHtml = question.options.map((option, index) => `
+                    <label>
+                        <input type="radio" name="${question.id}" value="${option}" ${answers[question.id] === option ? 'checked' : ''}> ${option}
+                    </label>
+                    <br>
+                `).join('');
+                
+                questionContainer.innerHTML = `
+                    <p>${question.question}</p>
+                    ${optionsHtml}
+                `;
+            } else if (question.type === "coding") {
+                questionContainer.innerHTML = `
+                    <p>${question.question}</p>
+                    <textarea id="${question.id}">${answers[question.id] || ''}</textarea>
+                `;
+            }
+
+            updateNavButtons();
+        }
+
+        // Save the current answer
+        function saveAnswer() {
+            const question = currentQuestions[currentQuestionIndex];
+            if (question.type === "text") {
+                const input = document.getElementById(question.id);
+                answers[question.id] = input.value.trim();
+            } else if (question.type === "mcq") {
+                const selectedOption = document.querySelector(`input[name="${question.id}"]:checked`);
+                if (selectedOption) {
+                    answers[question.id] = selectedOption.value;
+                }
+            } else if (question.type === "coding") {
+                const codeInput = document.getElementById(question.id);
+                answers[question.id] = codeInput.value.trim();
+            }
+        }
+
+        // Navigate to the next question
+        function nextQuestion() {
+            if (currentQuestionIndex < currentQuestions.length - 1) {
+                saveAnswer();
+                currentQuestionIndex++;
+                displayQuestion();
+            } else {
+                calculateScore();
+            }
+        }
+
+        // Navigate to the previous question
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                saveAnswer();
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        }
+
+        // Update navigation button states
+        function updateNavButtons() {
+            document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
+            document.getElementById('nextBtn').textContent = currentQuestionIndex === currentQuestions.length - 1 ? "Submit" : "Next";
+        }
+
+        // Calculate the score
+        function calculateScore() {
+            saveAnswer();
+            let score = 0;
+
+            currentQuestions.forEach(question => {
+                if (answers[question.id]?.toLowerCase() === correctAnswers[question.id]?.toLowerCase()) score++;
+            });
+
+            const percentage = Math.round((score / currentQuestions.length) * 100);
+            if (currentQuestions === aptitudeQuestions) {
+                scores.aptitude = percentage;
+                alert("Aptitude Section Completed!");
+            } else {
+                scores.coding = percentage;
+                alert("Coding Section Completed!");
+            }
+
+            showScore();
+        }
+
+        // Show the score page
+        function showScore() {
+            const totalScore = Math.round((scores.aptitude + scores.coding) / 2);  // Calculate average of both scores
+            document.getElementById('aptitudeScore').textContent = scores.aptitude + "%";
+            document.getElementById('codingScore').textContent = scores.coding + "%";
+            document.getElementById('totalScore').textContent = totalScore + "%";  // Display the total score
+            document.getElementById('circleScore').textContent = totalScore + "%";  // Update the circle score
+            showContainer('scoreContainer');
+        }
+
+        // Go back to exam selection
+        function goBackToSelection() {
+            showContainer('examSelectionContainer');
+        }
+
+        // Logout
+        function logout() {
+            showContainer('loginContainer');
+        }
+
+        // Helper function to show containers
+        function showContainer(containerId) {
+            document.querySelectorAll('.container').forEach(container => container.classList.remove('active'));
+            document.getElementById(containerId).classList.add('active');
+        }
+    </script>
+</body>
+</html>
